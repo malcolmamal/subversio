@@ -1,0 +1,112 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
+import multer from 'multer';
+import { PrismaClient } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+
+import { TranslationService } from './services/translation.service';
+
+// Load env from root then local
+dotenv.config({ path: path.join(__dirname, '../../../.env') });
+dotenv.config();
+
+const app = express();
+const prisma = new PrismaClient();
+const translationService = new TranslationService();
+const port = 4040;
+
+app.use(cors({
+  origin: 'http://localhost:4041',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json());
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+// Multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const filename = `${uuidv4()}${ext}`;
+    cb(null, filename);
+  }
+});
+
+const upload = multer({ storage });
+
+// Static files for downloads
+app.use('/uploads', express.static(uploadsDir));
+
+app.get('/api/subtitles', async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  const skip = (Number(page) - 1) * Number(limit);
+  
+  const [subtitles, total] = await Promise.all([
+    prisma.subtitle.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: Number(limit)
+    }),
+    prisma.subtitle.count()
+  ]);
+  
+  res.json({ subtitles, total, page: Number(page), limit: Number(limit) });
+});
+
+app.post('/api/subtitles/upload', upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const { name, sourceLanguage } = req.body;
+
+  const subtitle = await prisma.subtitle.create({
+    data: {
+      name: name || req.file.originalname,
+      originalFileName: req.file.originalname,
+      originalFilePath: req.file.filename,
+      sourceLanguage: sourceLanguage || 'und',
+      status: 'UPLOADED'
+    }
+  });
+
+  res.json(subtitle);
+});
+
+app.post('/api/subtitles/:id/translate', async (req, res) => {
+  const { id } = req.params;
+  const { targetLanguage } = req.body;
+
+  if (!targetLanguage) {
+    return res.status(400).json({ error: 'Target language is required' });
+  }
+
+  // Start translation in background
+  translationService.translateSubtitle(id, targetLanguage).catch(err => {
+    console.error(`Background translation error for ${id}:`, err);
+  });
+
+  res.json({ message: 'Translation started' });
+});
+
+app.get('/api/subtitles/:id', async (req, res) => {
+  const { id } = req.params;
+  const subtitle = await prisma.subtitle.findUnique({ where: { id } });
+  if (!subtitle) return res.status(404).json({ error: 'Not found' });
+  res.json(subtitle);
+});
+
+app.listen(port, () => {
+  console.log(`Backend listening at http://localhost:${port}`);
+});

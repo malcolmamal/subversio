@@ -1,0 +1,7 @@
+node_modules
+example
+.env
+apps/backend/prisma/dev.db
+apps/backend/uploads/
+apps/backend/dist/
+apps/frontend/dist/

@@ -1,0 +1,24 @@
+{
+  "DASHBOARD": {
+    "TITLE": "SubVersio",
+    "SUBTITLE": "Professional subtitle translation using Gemini AI",
+    "LIBRARY": "Your Subtitles",
+    "EMPTY": "No subtitles yet. Upload one to get started!"
+  },
+  "UPLOAD": {
+    "DRAG_DROP": "Drag & drop a subtitle file here",
+    "SUPPORTED_FORMATS": "Supports .srt, .vtt, .txt",
+    "DETECTED": "Detected language",
+    "SUCCESS": "File uploaded successfully"
+  },
+  "LIST": {
+    "TRANSLATE": "Translate",
+    "DOWNLOAD": "Download",
+    "ERROR": "Translation failed"
+  },
+  "MODAL": {
+    "CHOOSE_LANG": "Translate into...",
+    "CANCEL": "Cancel",
+    "START": "Start Translation"
+  }
+}

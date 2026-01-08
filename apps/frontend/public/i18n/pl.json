@@ -1,0 +1,24 @@
+{
+  "DASHBOARD": {
+    "TITLE": "SubVersio",
+    "SUBTITLE": "Profesjonalne tłumaczenie napisów za pomocą Gemini AI",
+    "LIBRARY": "Twoje Napisy",
+    "EMPTY": "Brak napisów. Prześlij plik, aby zacząć!"
+  },
+  "UPLOAD": {
+    "DRAG_DROP": "Przeciągnij i upuść plik z napisami",
+    "SUPPORTED_FORMATS": "Obsługuje .srt, .vtt, .txt",
+    "DETECTED": "Wykryty język",
+    "SUCCESS": "Plik przesłany pomyślnie"
+  },
+  "LIST": {
+    "TRANSLATE": "Tłumacz",
+    "DOWNLOAD": "Pobierz",
+    "ERROR": "Błąd tłumaczenia"
+  },
+  "MODAL": {
+    "CHOOSE_LANG": "Tłumacz na...",
+    "CANCEL": "Anuluj",
+    "START": "Rozpocznij tłumaczenie"
+  }
+}
