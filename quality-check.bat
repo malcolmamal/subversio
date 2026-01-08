@@ -21,8 +21,8 @@ echo 🧹 Linting Project...
 call npm run lint
 if %errorlevel% neq 0 exit /b %errorlevel%
 
-echo ✨ Formatting Check...
-call npx prettier --check .
+echo ✨ Fixing Formatting...
+call npm run format
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 echo ✅ Quality Pipeline Passed!

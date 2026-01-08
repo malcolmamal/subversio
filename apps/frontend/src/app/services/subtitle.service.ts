@@ -1,6 +1,6 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Subtitle, SubtitleResponse } from '../models/subtitle.model';
+import { Subtitle, SubtitleResponse, SubtitleCompareResponse } from '../models/subtitle.model';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -8,6 +8,7 @@ import { Observable } from 'rxjs';
 })
 export class SubtitleService {
   private http = inject(HttpClient);
+  private ngZone = inject(NgZone);
   private apiUrl = 'http://localhost:4040/api';
 
   getSubtitles(page: number = 1, limit: number = 10): Observable<SubtitleResponse> {
@@ -18,6 +19,32 @@ export class SubtitleService {
 
   getSubtitle(id: string): Observable<Subtitle> {
     return this.http.get<Subtitle>(`${this.apiUrl}/subtitles/${id}`);
+  }
+
+  getCompare(id: string): Observable<SubtitleCompareResponse> {
+    return this.http.get<SubtitleCompareResponse>(`${this.apiUrl}/subtitles/${id}/compare`);
+  }
+
+  getSubtitleEvents(): Observable<any> {
+    return new Observable((observer) => {
+      const eventSource = new EventSource(`${this.apiUrl}/subtitles/events`);
+
+      eventSource.onmessage = (event) => {
+        this.ngZone.run(() => {
+          observer.next(JSON.parse(event.data));
+        });
+      };
+
+      eventSource.onerror = (error) => {
+        this.ngZone.run(() => {
+          observer.error(error);
+        });
+      };
+
+      return () => {
+        eventSource.close();
+      };
+    });
   }
 
   uploadSubtitle(file: File, name?: string, sourceLanguage?: string): Observable<Subtitle> {

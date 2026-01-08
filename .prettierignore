@@ -5,3 +5,6 @@ build
 package-lock.json
 *.db
 .angular
+coverage
+**/coverage
+**/dist

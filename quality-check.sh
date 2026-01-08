@@ -18,8 +18,8 @@ npm run test:frontend
 echo "🧹 Linting Project..."
 npm run lint
 
-echo "✨ Formatting Check..."
-npx prettier --check .
+echo "✨ Fixing Formatting..."
+npm run format
 
 echo "✅ Quality Pipeline Passed!"
 

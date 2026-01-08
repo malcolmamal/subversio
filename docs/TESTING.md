@@ -4,7 +4,7 @@ SubVersio maintains high code quality through automated testing, linting, and fo
 
 ## Quality Pipeline
 
-You can run the full quality check (Build, Test, Lint) locally:
+You can run the full quality check (Build, Test, Format, Lint) locally:
 
 **Windows:**
 

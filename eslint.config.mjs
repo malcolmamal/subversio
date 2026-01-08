@@ -29,6 +29,7 @@ export default tseslint.config(
       '**/.angular/**',
       '**/example/**',
       '**/.git/**',
+      '**/coverage/**',
     ],
   },
 );

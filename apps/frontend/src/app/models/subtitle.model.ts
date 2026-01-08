@@ -18,3 +18,16 @@ export interface SubtitleResponse {
   page: number;
   limit: number;
 }
+
+export interface SubtitleSegment {
+  index: number;
+  startTime: number;
+  endTime: number;
+  originalText: string;
+  translatedText?: string;
+}
+
+export interface SubtitleCompareResponse {
+  subtitle: Subtitle;
+  segments: SubtitleSegment[];
+}

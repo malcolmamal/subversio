@@ -16,6 +16,8 @@ import {
   Trash2,
   Edit2,
   RotateCw,
+  Eye,
+  ArrowLeft,
 } from 'lucide-angular';
 
 export const SV_ICONS = {
@@ -36,4 +38,6 @@ export const SV_ICONS = {
   Trash2,
   Edit2,
   RotateCw,
+  Eye,
+  ArrowLeft,
 };

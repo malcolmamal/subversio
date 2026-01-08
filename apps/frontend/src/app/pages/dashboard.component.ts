@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { SubtitlesStore } from '../store/subtitles.store';
 import { NavbarComponent } from '../components/navbar.component';
 import { DropZoneComponent } from '../components/drop-zone.component';
@@ -57,6 +58,7 @@ import { Subtitle } from '../models/subtitle.model';
                   (delete)="onDelete($event)"
                   (restart)="onRestart($event)"
                   (rename)="onRename($event)"
+                  (compare)="onCompare($event)"
                 ></sv-subtitle-item>
               } @empty {
                 @if (!store.loading()) {
@@ -127,6 +129,7 @@ export class DashboardComponent {
   readonly store = inject(SubtitlesStore);
   private subtitleService = inject(SubtitleService);
   private translateService = inject(TranslateService);
+  private router = inject(Router);
 
   isDarkMode = signal(false);
   currentLang = signal('en');
@@ -171,7 +174,6 @@ export class DashboardComponent {
 
   onRestart(id: string) {
     this.store.restartTranslation(id);
-    this.store.pollProgress(id);
   }
 
   onRename(subtitle: Subtitle) {
@@ -179,6 +181,10 @@ export class DashboardComponent {
     if (newName && newName !== subtitle.name) {
       this.store.renameSubtitle({ id: subtitle.id, name: newName });
     }
+  }
+
+  onCompare(subtitle: Subtitle) {
+    this.router.navigate(['/subtitles', subtitle.id, 'compare']);
   }
 
   onPageChange(page: number) {

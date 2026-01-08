@@ -65,6 +65,13 @@ import { TranslateModule } from '@ngx-translate/core';
               <lucide-icon name="download" class="w-4 h-4"></lucide-icon>
               <span>{{ 'LIST.DOWNLOAD' | translate }}</span>
             </button>
+            <button
+              (click)="compare.emit(subtitle)"
+              class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-all"
+              title="Compare"
+            >
+              <lucide-icon name="eye" class="w-4 h-4"></lucide-icon>
+            </button>
           </div>
         } @else if (subtitle.status === 'ERROR') {
           <div class="flex items-center space-x-2">
@@ -99,4 +106,5 @@ export class SubtitleItemComponent {
   @Output() delete = new EventEmitter<string>();
   @Output() restart = new EventEmitter<string>();
   @Output() rename = new EventEmitter<Subtitle>();
+  @Output() compare = new EventEmitter<Subtitle>();
 }
