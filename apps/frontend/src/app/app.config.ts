@@ -21,11 +21,11 @@ export const appConfig: ApplicationConfig = {
         loader: {
           provide: TranslateLoader,
           useFactory: HttpLoaderFactory,
-          deps: [HttpClient]
+          deps: [HttpClient],
         },
-        defaultLanguage: 'en'
+        defaultLanguage: 'en',
       }),
-      LucideAngularModule.pick(SV_ICONS)
-    )
-  ]
+      LucideAngularModule.pick(SV_ICONS),
+    ),
+  ],
 };

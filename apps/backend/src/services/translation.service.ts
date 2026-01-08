@@ -5,6 +5,8 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
+import { logger } from '../utils/logger';
+
 const prisma = new PrismaClient();
 const mutex = new Mutex();
 
@@ -14,49 +16,66 @@ export class TranslationService {
 
   constructor() {
     const apiKey = process.env.GOOGLE_API_KEY || '';
+    if (!apiKey) {
+      logger.warn('GOOGLE_API_KEY is not set. Translation will fail.');
+    }
     this.genAI = new GoogleGenerativeAI(apiKey);
   }
 
   async translateSubtitle(subtitleId: string, targetLanguage: string) {
+    logger.info(`Translation requested for ${subtitleId} to ${targetLanguage}`);
     return mutex.runExclusive(async () => {
       const subtitle = await prisma.subtitle.findUnique({ where: { id: subtitleId } });
-      if (!subtitle) throw new Error('Subtitle not found');
+      if (!subtitle) {
+        logger.error(`Subtitle ${subtitleId} not found in database`);
+        throw new Error('Subtitle not found');
+      }
 
       try {
+        logger.info(`Updating status to TRANSLATING for ${subtitleId}`);
         await prisma.subtitle.update({
           where: { id: subtitleId },
-          data: { status: 'TRANSLATING', targetLanguage, progress: 0 }
+          data: { status: 'TRANSLATING', targetLanguage, progress: 0 },
         });
 
         const originalPath = path.join(this.uploadsDir, subtitle.originalFilePath);
+        logger.info(`Reading file from ${originalPath}`);
         const originalContent = fs.readFileSync(originalPath, 'utf-8');
 
         // Simple chunking logic (by blocks)
         const blocks = this.splitIntoBlocks(originalContent, subtitle.originalFileName);
         const chunkSize = 30; // 30 blocks per chunk
         const totalChunks = Math.ceil(blocks.length / chunkSize);
-        
+        logger.info(`Split into ${blocks.length} blocks, ${totalChunks} chunks`);
+
         let translatedContent = '';
-        
+
         for (let i = 0; i < totalChunks; i++) {
           const chunkBlocks = blocks.slice(i * chunkSize, (i + 1) * chunkSize);
           const chunkText = chunkBlocks.join('\n\n');
-          
-          const translatedChunk = await this.translateChunk(chunkText, targetLanguage);
-          translatedContent += (translatedContent ? '\n\n' : '') + translatedChunk;
-          
+
+          logger.info(`Translating chunk ${i + 1}/${totalChunks} for ${subtitleId}`);
+          try {
+            const translatedChunk = await this.translateChunk(chunkText, targetLanguage);
+            translatedContent += (translatedContent ? '\n\n' : '') + translatedChunk;
+          } catch (chunkError) {
+            logger.error(`Error translating chunk ${i + 1} for ${subtitleId}:`, chunkError);
+            throw chunkError;
+          }
+
           const progress = Math.round(((i + 1) / totalChunks) * 100);
           await prisma.subtitle.update({
             where: { id: subtitleId },
-            data: { progress }
+            data: { progress },
           });
-          
+
           // Small delay to respect rate limits if needed
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
 
         const translatedFileName = `${uuidv4()}_${targetLanguage}${path.extname(subtitle.originalFileName)}`;
         const translatedPath = path.join(this.uploadsDir, translatedFileName);
+        logger.info(`Writing translated file to ${translatedPath}`);
         fs.writeFileSync(translatedPath, translatedContent);
 
         await prisma.subtitle.update({
@@ -64,15 +83,15 @@ export class TranslationService {
           data: {
             status: 'COMPLETED',
             translatedFilePath: translatedFileName,
-            progress: 100
-          }
+            progress: 100,
+          },
         });
-
+        logger.info(`Translation COMPLETED for ${subtitleId}`);
       } catch (error: any) {
-        console.error('Translation error:', error);
+        logger.error(`Translation error for ${subtitleId}:`, error);
         await prisma.subtitle.update({
           where: { id: subtitleId },
-          data: { status: 'ERROR' }
+          data: { status: 'ERROR' },
         });
         throw error;
       }
@@ -104,8 +123,13 @@ IMPORTANT:
 Input:
 ${text}`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text().trim();
+    try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text().trim();
+    } catch (err: any) {
+      logger.error('Gemini API Error:', err);
+      throw err;
+    }
   }
 }

@@ -8,30 +8,34 @@ import LanguageDetect from 'languagedetect';
   standalone: true,
   imports: [LucideAngularModule, TranslateModule],
   template: `
-    <div class="relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-xl transition-all cursor-pointer"
-         [class.border-indigo-500]="isDragging()"
-         [class.bg-indigo-50]="isDragging()"
-         [class.dark:bg-indigo-900]="isDragging()"
-         [class.border-slate-300]="!isDragging()"
-         (dragover)="onDragOver($event)"
-         (dragleave)="onDragLeave()"
-         (drop)="onDrop($event)"
-         (click)="fileInput.click()">
-      <input #fileInput type="file" class="hidden" (change)="onFileSelected($event)" accept=".srt,.vtt,.txt">
+    <div
+      class="relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-xl transition-all cursor-pointer"
+      [class.border-indigo-500]="isDragging()"
+      [class.bg-indigo-50]="isDragging()"
+      [class.dark:bg-indigo-900]="isDragging()"
+      [class.border-slate-300]="!isDragging()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave()"
+      (drop)="onDrop($event)"
+      (click)="fileInput.click()"
+    >
+      <input #fileInput type="file" class="hidden" (change)="onFileSelected($event)" accept=".srt,.vtt,.txt" />
       <lucide-icon name="upload" class="w-12 h-12 mb-4 text-slate-400"></lucide-icon>
       <p class="mb-2 text-lg font-medium">{{ 'UPLOAD.DRAG_DROP' | translate }}</p>
       <p class="text-sm text-slate-500">{{ 'UPLOAD.SUPPORTED_FORMATS' | translate }}</p>
       @if (detectedLang()) {
-        <div class="mt-4 px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-xs rounded-full font-semibold">
+        <div
+          class="mt-4 px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-xs rounded-full font-semibold"
+        >
           {{ 'UPLOAD.DETECTED' | translate }}: {{ detectedLang() }}
         </div>
       }
     </div>
-  `
+  `,
 })
 export class DropZoneComponent {
-  @Output() fileUploaded = new EventEmitter<{ file: File, detectedLang: string }>();
-  
+  @Output() fileUploaded = new EventEmitter<{ file: File; detectedLang: string }>();
+
   isDragging = signal(false);
   detectedLang = signal<string | null>(null);
   private detector = new LanguageDetect();

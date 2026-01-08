@@ -1,4 +1,22 @@
-import { Languages, Sun, Moon, Upload, FileText, Download, Play, CheckCircle, AlertCircle, Loader2, Search, ChevronLeft, ChevronRight, Globe } from 'lucide-angular';
+import {
+  Languages,
+  Sun,
+  Moon,
+  Upload,
+  FileText,
+  Download,
+  Play,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Globe,
+  Trash2,
+  Edit2,
+  RotateCw,
+} from 'lucide-angular';
 
 export const SV_ICONS = {
   Languages,
@@ -14,5 +32,8 @@ export const SV_ICONS = {
   Search,
   ChevronLeft,
   ChevronRight,
-  Globe
+  Globe,
+  Trash2,
+  Edit2,
+  RotateCw,
 };

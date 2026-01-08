@@ -7,17 +7,17 @@ import { LucideAngularModule } from 'lucide-angular';
   imports: [LucideAngularModule],
   template: `
     <div class="flex items-center justify-center space-x-2 py-4">
-      <button 
+      <button
         [disabled]="page === 1"
         (click)="changePage.emit(page - 1)"
         class="p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-50"
       >
         <lucide-icon name="chevron-left" class="w-4 h-4"></lucide-icon>
       </button>
-      
+
       <span class="text-sm font-medium">Page {{ page }} of {{ totalPages }}</span>
-      
-      <button 
+
+      <button
         [disabled]="page >= totalPages"
         (click)="changePage.emit(page + 1)"
         class="p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-50"
@@ -25,7 +25,7 @@ import { LucideAngularModule } from 'lucide-angular';
         <lucide-icon name="chevron-right" class="w-4 h-4"></lucide-icon>
       </button>
     </div>
-  `
+  `,
 })
 export class PaginationComponent {
   @Input() page = 1;

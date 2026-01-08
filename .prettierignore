@@ -1,0 +1,7 @@
+node_modules
+dist
+out-tsc
+build
+package-lock.json
+*.db
+.angular

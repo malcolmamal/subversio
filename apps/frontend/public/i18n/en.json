@@ -14,7 +14,10 @@
   "LIST": {
     "TRANSLATE": "Translate",
     "DOWNLOAD": "Download",
-    "ERROR": "Translation failed"
+    "ERROR": "Translation failed",
+    "RESTART": "Restart",
+    "RETRY": "Retry",
+    "DELETE": "Delete"
   },
   "MODAL": {
     "CHOOSE_LANG": "Translate into...",

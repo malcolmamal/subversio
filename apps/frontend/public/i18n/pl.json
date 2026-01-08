@@ -14,7 +14,10 @@
   "LIST": {
     "TRANSLATE": "Tłumacz",
     "DOWNLOAD": "Pobierz",
-    "ERROR": "Błąd tłumaczenia"
+    "ERROR": "Błąd tłumaczenia",
+    "RESTART": "Restartuj",
+    "RETRY": "Ponów",
+    "DELETE": "Usuń"
   },
   "MODAL": {
     "CHOOSE_LANG": "Tłumacz na...",

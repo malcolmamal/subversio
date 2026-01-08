@@ -1,4 +1,4 @@
-import { Signal, computed } from '@angular/core';
+import { computed } from '@angular/core';
 import { signalStoreFeature, withComputed, withState } from '@ngrx/signals';
 
 export type CallState = 'init' | 'loaded' | 'loading' | { error: string };
@@ -16,8 +16,8 @@ export function withCallState() {
       error: computed(() => {
         const state = callState();
         return typeof state === 'object' ? state.error : null;
-      })
-    }))
+      }),
+    })),
   );
 }
 
