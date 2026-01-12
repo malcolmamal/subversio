@@ -159,10 +159,10 @@ export const SubtitlesStore = signalStore(
       ),
     ),
 
-    translate: rxMethod<{ id: string; targetLanguage: string }>(
+    translate: rxMethod<{ id: string; targetLanguage: string; chunkSize?: number }>(
       pipe(
-        switchMap(({ id, targetLanguage }) =>
-          subtitleService.translateSubtitle(id, targetLanguage).pipe(
+        switchMap(({ id, targetLanguage, chunkSize }) =>
+          subtitleService.translateSubtitle(id, targetLanguage, chunkSize).pipe(
             tap({
               next: () => {
                 patchState(store, (state: any) => ({

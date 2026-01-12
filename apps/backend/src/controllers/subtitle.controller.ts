@@ -70,14 +70,14 @@ export class SubtitleController {
 
   async translate(req: Request, res: Response) {
     const { id } = req.params;
-    const { targetLanguage } = req.body;
+    const { targetLanguage, chunkSize } = req.body;
 
     if (!targetLanguage) {
       return res.status(400).json({ error: 'Target language is required' });
     }
 
-    logger.info(`Starting translation for ${id} to ${targetLanguage}`);
-    this.translationService.translateSubtitle(id, targetLanguage).catch((err) => {
+    logger.info(`Starting translation for ${id} to ${targetLanguage} with chunkSize ${chunkSize || 'default'}`);
+    this.translationService.translateSubtitle(id, targetLanguage, { chunkSize }).catch((err) => {
       logger.error(`Background translation error for ${id}:`, err);
     });
 

@@ -87,6 +87,7 @@ import { Subtitle } from '../models/subtitle.model';
               class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 w-full max-w-sm border border-slate-200 dark:border-slate-700"
             >
               <h3 class="text-lg font-bold mb-4">{{ 'MODAL.CHOOSE_LANG' | translate }}</h3>
+              
               <div class="grid grid-cols-2 gap-3 mb-6">
                 @for (lang of targetLanguages; track lang.code) {
                   <button
@@ -103,6 +104,31 @@ import { Subtitle } from '../models/subtitle.model';
                   </button>
                 }
               </div>
+
+              <div class="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                <div class="flex justify-between items-center mb-2">
+                  <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Context Size (Cues per chunk)
+                  </label>
+                  <span class="text-xs font-mono bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded">
+                    {{ chunkSize() }}
+                  </span>
+                </div>
+                <input 
+                  type="range" 
+                  min="10" 
+                  max="100" 
+                  step="5"
+                  [value]="chunkSize()" 
+                  (input)="onChunkSizeChange($event)"
+                  class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+                <div class="flex justify-between mt-1 text-[10px] text-slate-400">
+                  <span>Higher Quality (More Context)</span>
+                  <span>Higher Safety (Smaller Chunks)</span>
+                </div>
+              </div>
+
               <div class="flex space-x-3">
                 <button
                   (click)="showTranslateModal.set(false)"
@@ -136,6 +162,7 @@ export class DashboardComponent {
   showTranslateModal = signal(false);
   subtitleToTranslate: Subtitle | null = null;
   selectedTargetLang: string | null = null;
+  chunkSize = signal(40);
 
   targetLanguages = [
     { code: 'polish', name: 'Polish', flag: '🇵🇱' },
@@ -196,11 +223,17 @@ export class DashboardComponent {
     this.showTranslateModal.set(true);
   }
 
+  onChunkSizeChange(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    this.chunkSize.set(parseInt(value, 10));
+  }
+
   confirmTranslation() {
     if (this.subtitleToTranslate && this.selectedTargetLang) {
       this.store.translate({
         id: this.subtitleToTranslate.id,
         targetLanguage: this.selectedTargetLang,
+        chunkSize: this.chunkSize(),
       });
       this.showTranslateModal.set(false);
       this.selectedTargetLang = null;

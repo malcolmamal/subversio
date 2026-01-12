@@ -56,9 +56,10 @@ export class SubtitleService {
     return this.http.post<Subtitle>(`${this.apiUrl}/subtitles/upload`, formData);
   }
 
-  translateSubtitle(id: string, targetLanguage: string): Observable<{ message: string }> {
+  translateSubtitle(id: string, targetLanguage: string, chunkSize?: number): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.apiUrl}/subtitles/${id}/translate`, {
       targetLanguage,
+      chunkSize,
     });
   }
 

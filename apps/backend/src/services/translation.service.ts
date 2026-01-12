@@ -39,13 +39,13 @@ export class TranslationService extends EventEmitter {
     }
   }
 
-  async translateSubtitle(subtitleId: string, targetLanguage: string) {
+  async translateSubtitle(subtitleId: string, targetLanguage: string, options?: { chunkSize?: number }) {
     if (this.processRegistry.isTaskActive(subtitleId)) {
       logger.warn(`Task ${subtitleId} is already active, skipping.`);
       return;
     }
 
-    logger.info(`Translation requested for ${subtitleId} to ${targetLanguage}`);
+    logger.info(`Translation requested for ${subtitleId} to ${targetLanguage} (chunkSize: ${options?.chunkSize || 'default'})`);
     this.processRegistry.registerTask(subtitleId);
 
     return this.mutex.runExclusive(async () => {
@@ -76,22 +76,28 @@ export class TranslationService extends EventEmitter {
           const cues = nodes.filter((node) => node.type === 'cue');
           const nonCues = nodes.filter((node) => node.type !== 'cue'); // Headers/footers
 
-          const chunkSize = 30;
+          const chunkSize = options?.chunkSize || 40;
           const totalChunks = Math.ceil(cues.length / chunkSize);
           logger.info(`Detected ${cues.length} cues, ${totalChunks} chunks`);
 
           const translatedCues: Node[] = [];
 
           for (let i = 0; i < totalChunks; i++) {
-            const chunkCues = cues.slice(i * chunkSize, (i + 1) * chunkSize);
-            const chunkText = stringifySync(chunkCues, { format: ext.slice(1) as any });
+            const startIndex = i * chunkSize;
+            const chunkCues = cues.slice(startIndex, (i + 1) * chunkSize);
 
-            logger.info(`Translating chunk ${i + 1}/${totalChunks} for ${subtitleId}`);
-            const translatedChunkText = await this.translateChunk(chunkText, targetLanguage);
+            logger.info(`Translating chunk ${i + 1}/${totalChunks} for ${subtitleId} (${chunkCues.length} cues)`);
+            const translatedTexts = await this.translateCuesStructured(chunkCues, targetLanguage);
 
-            // Re-parse the translated chunk to get nodes back
-            const translatedNodes = parseSync(translatedChunkText);
-            translatedCues.push(...translatedNodes.filter((n) => n.type === 'cue'));
+            for (let j = 0; j < chunkCues.length; j++) {
+              const cue = chunkCues[j];
+              if (translatedTexts[j]) {
+                (cue as any).data.text = translatedTexts[j];
+              } else {
+                logger.warn(`Missing translation for cue ${startIndex + j + 1} in chunk ${i + 1}, keeping original.`);
+              }
+              translatedCues.push(cue);
+            }
 
             const progress = Math.round(((i + 1) / totalChunks) * 100);
             await this.subtitleRepo.update(subtitleId, { progress });
@@ -102,16 +108,21 @@ export class TranslationService extends EventEmitter {
           // Combine with non-cues (preserving headers)
           translatedContent = stringifySync([...nonCues, ...translatedCues], { format: ext.slice(1) as any });
         } else {
-          // Fallback for TXT files
+          // Fallback for TXT files - now using structured tagging too!
+          // We keep empty lines to ensure the structure remains 100% intact
           const lines = originalContent.split(/\r?\n/);
-          const chunkSize = 50;
+          const chunkSize = options?.chunkSize || 40;
           const totalChunks = Math.ceil(lines.length / chunkSize);
+          logger.info(`Detected ${lines.length} lines, ${totalChunks} chunks`);
 
           for (let i = 0; i < totalChunks; i++) {
-            const chunkLines = lines.slice(i * chunkSize, (i + 1) * chunkSize);
-            const chunkText = chunkLines.join('\n');
-            const translatedChunk = await this.translateChunk(chunkText, targetLanguage);
-            translatedContent += (translatedContent ? '\n' : '') + translatedChunk;
+            const startIndex = i * chunkSize;
+            const chunkLines = lines.slice(startIndex, (i + 1) * chunkSize);
+
+            logger.info(`Translating line chunk ${i + 1}/${totalChunks} for ${subtitleId} (${chunkLines.length} lines)`);
+            const translatedLines = await this.translateLinesStructured(chunkLines, targetLanguage);
+
+            translatedContent += (translatedContent ? '\n' : '') + translatedLines.join('\n');
 
             const progress = Math.round(((i + 1) / totalChunks) * 100);
             await this.subtitleRepo.update(subtitleId, { progress });
@@ -140,6 +151,100 @@ export class TranslationService extends EventEmitter {
         this.processRegistry.deregisterTask(subtitleId);
       }
     });
+  }
+
+  private async translateCuesStructured(chunkCues: Node[], targetLanguage: string): Promise<string[]> {
+    const modelName = process.env.GEMINI_FLASH_MODEL || 'gemini-1.5-flash';
+    const model = this.genAI.getGenerativeModel({ model: modelName });
+
+    const taggedInput = chunkCues
+      .map((node, i) => {
+        const text = (node as any).data.text;
+        return `<S-${i}>\n${text}\n</S-${i}>`;
+      })
+      .join('\n');
+
+    const prompt = `Translate the following movie subtitles into ${targetLanguage}. 
+IMPORTANT: 
+1. You are translating for a movie or show. Maintain a natural, conversational style relative to the context. 
+2. Maintain all formatting tags (e.g., <i>, <b>), new lines within the text, and special characters. 
+3. Each subtitle segment is enclosed in <S-N> and </S-N> tags. 
+4. You MUST return exactly the same number of segments, each with its original <S-N> and </S-N> tags. 
+5. DO NOT MERGE multiple segments into one. Even if a sentence spans across multiple segments, translate the portion within each segment's tags and do not combine them. 
+6. Do translate idioms and phrases naturally, considering cultural context.
+7. Do translate content in parentheses or brackets that provide additional context.
+8. Return ONLY the segments with their tags. Do not add any introductory or concluding text.
+
+Input:
+${taggedInput}`;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const responseText = response.text().trim();
+
+      const translatedTexts: string[] = new Array(chunkCues.length).fill('');
+      for (let i = 0; i < chunkCues.length; i++) {
+        // Use a regex that handles potential whitespace and is case-insensitive
+        const regex = new RegExp(`<S-${i}>([\\s\\S]*?)</S-${i}>`, 'i');
+        const match = responseText.match(regex);
+        if (match) {
+          translatedTexts[i] = match[1].trim();
+        } else {
+          logger.warn(`Could not find translation for segment <S-${i}> in response`);
+        }
+      }
+      return translatedTexts;
+    } catch (err: any) {
+      logger.error('Gemini API Error in structured translation:', err);
+      throw err;
+    }
+  }
+
+  private async translateLinesStructured(lines: string[], targetLanguage: string): Promise<string[]> {
+    const modelName = process.env.GEMINI_FLASH_MODEL || 'gemini-1.5-flash';
+    const model = this.genAI.getGenerativeModel({ model: modelName });
+
+    const taggedInput = lines
+      .map((line, i) => {
+        if (!line.trim()) return `<L-${i}></L-${i}>`;
+        return `<L-${i}>${line}</L-${i}>`;
+      })
+      .join('\n');
+
+    const prompt = `Translate the following text into ${targetLanguage}. 
+IMPORTANT: 
+1. Maintain the natural flow of the text. 
+2. Each line is enclosed in <L-N> and </L-N> tags. 
+3. You MUST return exactly the same number of lines, each with its original <L-N> and </L-N> tags. 
+4. DO NOT MERGE multiple lines into one.
+5. If a line is empty between tags, return it empty.
+6. Return ONLY the lines with their tags. Do not add any introductory or concluding text.
+
+Input:
+${taggedInput}`;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const responseText = response.text().trim();
+
+      const translatedLines: string[] = new Array(lines.length).fill('');
+      for (let i = 0; i < lines.length; i++) {
+        const regex = new RegExp(`<L-${i}>([\\s\\S]*?)</L-${i}>`, 'i');
+        const match = responseText.match(regex);
+        if (match) {
+          translatedLines[i] = match[1].trim();
+        } else {
+          logger.warn(`Could not find translation for line <L-${i}>, keeping original.`);
+          translatedLines[i] = lines[i];
+        }
+      }
+      return translatedLines;
+    } catch (err: any) {
+      logger.error('Gemini API Error in structured line translation:', err);
+      throw err;
+    }
   }
 
   private async translateChunk(text: string, targetLanguage: string): Promise<string> {
