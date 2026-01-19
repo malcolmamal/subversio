@@ -25,6 +25,39 @@ export class SubtitleService {
     return this.http.get<SubtitleCompareResponse>(`${this.apiUrl}/subtitles/${id}/compare`);
   }
 
+  updateSegment(
+    subtitleId: string,
+    index: number,
+    payload: { originalText?: string; translatedText?: string },
+  ): Observable<{ index: number; originalText?: string; translatedText?: string }> {
+    return this.http.patch<{ index: number; originalText?: string; translatedText?: string }>(
+      `${this.apiUrl}/subtitles/${subtitleId}/segments/${index}`,
+      payload,
+    );
+  }
+
+  insertSegment(
+    subtitleId: string,
+    payload: { index: number; originalText?: string; translatedText?: string; startTime?: number; endTime?: number },
+  ): Observable<{ index: number }> {
+    return this.http.post<{ index: number }>(`${this.apiUrl}/subtitles/${subtitleId}/segments`, payload);
+  }
+
+  deleteSegment(subtitleId: string, index: number): Observable<{ index: number }> {
+    return this.http.delete<{ index: number }>(`${this.apiUrl}/subtitles/${subtitleId}/segments/${index}`);
+  }
+
+  forceTranslateSegment(
+    subtitleId: string,
+    index: number,
+    targetLanguage?: string,
+  ): Observable<{ index: number; translatedText: string }> {
+    return this.http.post<{ index: number; translatedText: string }>(
+      `${this.apiUrl}/subtitles/${subtitleId}/segments/${index}/translate`,
+      { targetLanguage },
+    );
+  }
+
   getSubtitleEvents(): Observable<any> {
     return new Observable((observer) => {
       const eventSource = new EventSource(`${this.apiUrl}/subtitles/events`);

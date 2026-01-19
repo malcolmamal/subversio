@@ -41,12 +41,14 @@ SubVersio is an intelligent subtitle translation tool that leverages Gemini AI t
    ```
 
 2. **Set up Backend Environment**:
-   Create `apps/backend/.env` with your `GOOGLE_API_KEY`.
+   Create `apps/backend/.env` with:
+   - `GOOGLE_API_KEY`
+   - `DATABASE_URL="file:./prisma/dev.db"`
 
 3. **Initialize Database**:
 
    ```bash
-   npm run prisma:push --workspace=apps/backend
+   npm run prisma:init
    ```
 
 4. **Run Development Mode**:
@@ -56,6 +58,12 @@ SubVersio is an intelligent subtitle translation tool that leverages Gemini AI t
    # Terminal 2
    npm run dev:frontend
    ```
+
+## Crash/Resume Behavior
+
+- Subtitle files and metadata are persisted in SQLite (`apps/backend/prisma/dev.db`) and the uploads folder.
+- If the backend crashes during translation, any in-progress jobs are marked as `ERROR` on restart.
+- You can resume by clicking Retry/Restart in the UI; there is no pause/resume yet.
 
 ## ✅ Quality Pipeline
 

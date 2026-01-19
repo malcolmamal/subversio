@@ -87,7 +87,7 @@ import { Subtitle } from '../models/subtitle.model';
               class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 w-full max-w-sm border border-slate-200 dark:border-slate-700"
             >
               <h3 class="text-lg font-bold mb-4">{{ 'MODAL.CHOOSE_LANG' | translate }}</h3>
-              
+
               <div class="grid grid-cols-2 gap-3 mb-6">
                 @for (lang of targetLanguages; track lang.code) {
                   <button
@@ -110,16 +110,18 @@ import { Subtitle } from '../models/subtitle.model';
                   <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Context Size (Cues per chunk)
                   </label>
-                  <span class="text-xs font-mono bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded">
+                  <span
+                    class="text-xs font-mono bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded"
+                  >
                     {{ chunkSize() }}
                   </span>
                 </div>
-                <input 
-                  type="range" 
-                  min="10" 
-                  max="100" 
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
                   step="5"
-                  [value]="chunkSize()" 
+                  [value]="chunkSize()"
                   (input)="onChunkSizeChange($event)"
                   class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                 />

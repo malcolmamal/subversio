@@ -30,6 +30,22 @@ export function createSubtitleRouter(controller: SubtitleController) {
     '/:id/compare',
     asyncHandler((req: any, res: any) => controller.getCompare(req, res)),
   );
+  router.patch(
+    '/:id/segments/:index',
+    asyncHandler((req: any, res: any) => controller.updateSegment(req, res)),
+  );
+  router.post(
+    '/:id/segments',
+    asyncHandler((req: any, res: any) => controller.insertSegment(req, res)),
+  );
+  router.delete(
+    '/:id/segments/:index',
+    asyncHandler((req: any, res: any) => controller.deleteSegment(req, res)),
+  );
+  router.post(
+    '/:id/segments/:index/translate',
+    asyncHandler((req: any, res: any) => controller.translateSegment(req, res)),
+  );
   router.get('/events', (req, res) => controller.events(req, res)); // SSE stays standard usually
   router.post(
     '/upload',

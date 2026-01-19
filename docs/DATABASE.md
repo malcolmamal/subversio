@@ -10,12 +10,14 @@ The database schema is defined in [apps/backend/prisma/schema.prisma](../apps/ba
 
 Run these from the **root directory** (they target the `apps/backend` workspace):
 
+Ensure `apps/backend/.env` contains `DATABASE_URL="file:./prisma/dev.db"` before running Prisma commands.
+
 ### Initialize / Reset Database
 
-To push the schema to the database (and create `dev.db` if it doesn't exist):
+Run migrations and seed data (creates `dev.db` if it doesn't exist):
 
 ```bash
-npm run prisma:push --workspace=apps/backend
+npm run prisma:init
 ```
 
 ### Generate Prisma Client

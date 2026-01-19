@@ -1,3 +1,7 @@
+jest.mock('uuid', () => ({
+  v4: () => 'test-uuid',
+}));
+
 import { SubtitleController } from './subtitle.controller';
 
 describe('SubtitleController', () => {

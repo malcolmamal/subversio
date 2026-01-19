@@ -1,14 +1,16 @@
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { SubtitleService } from '../../services/subtitle.service';
 import { SubtitleCompareResponse } from '../../models/subtitle.model';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule, ArrowLeft } from 'lucide-angular';
+import { SegmentSaveEvent, SubtitleCompareRowComponent } from './subtitle-compare-row.component';
 
 @Component({
   selector: 'app-subtitle-compare',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink, LucideAngularModule, SubtitleCompareRowComponent, ScrollingModule],
   template: `
     <div class="container mx-auto p-4 max-w-6xl">
       <div class="flex items-center gap-4 mb-6">
@@ -26,27 +28,21 @@ import { LucideAngularModule, ArrowLeft } from 'lucide-angular';
         </div>
       </div>
 
-      <div class="space-y-4 pt-4">
-        @for (segment of data()?.segments; track segment.index) {
-          <div class="card bg-base-200 border border-base-300 shadow-sm overflow-hidden">
-            <div class="card-body p-0">
-              <div class="bg-base-300 px-4 py-1 text-[10px] font-mono flex justify-between opacity-70">
-                <span>SEGMENT #{{ segment.index }}</span>
-                <span>{{ formatTime(segment.startTime) }} &rarr; {{ formatTime(segment.endTime) }}</span>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-base-300">
-                <div class="p-6 bg-base-100">
-                  <p class="whitespace-pre-wrap leading-relaxed">{{ segment.originalText }}</p>
-                </div>
-                <div class="p-6 bg-primary/5">
-                  <p class="whitespace-pre-wrap font-medium leading-relaxed">
-                    {{ segment.translatedText || '...' }}
-                  </p>
-                </div>
-              </div>
+      <div class="pt-4">
+        @if ((data()?.segments?.length ?? 0) > 0) {
+          <cdk-virtual-scroll-viewport class="w-full" [itemSize]="itemSize" [style.height.px]="itemSize * visibleRows">
+            <div class="space-y-4" *cdkVirtualFor="let segment of segments(); trackBy: trackByIndex">
+              <app-subtitle-compare-row
+                [segment]="segment"
+                [actionInProgress]="actionInProgress()"
+                (saveSegment)="onSaveSegment($event)"
+                (forceTranslate)="forceTranslateSegment($event)"
+                (insertBelow)="insertSegmentBelow($event)"
+                (delete)="deleteSegmentByIndex($event)"
+              ></app-subtitle-compare-row>
             </div>
-          </div>
-        } @empty {
+          </cdk-virtual-scroll-viewport>
+        } @else {
           <div class="text-center py-20 bg-base-200 rounded-box border-2 border-dashed border-base-300">
             <p class="opacity-50">Loading segments or no translation available yet...</p>
           </div>
@@ -61,18 +57,86 @@ export class SubtitleCompareComponent implements OnInit {
   ArrowLeftIcon = ArrowLeft;
 
   data = signal<SubtitleCompareResponse | null>(null);
+  actionInProgress = signal(false);
+  itemSize = 260;
+  visibleRows = 14;
 
   ngOnInit() {
+    this.refresh();
+  }
+
+  refresh() {
     this.subtitleService.getCompare(this.id()).subscribe((res) => {
       this.data.set(res);
     });
   }
 
-  formatTime(ms: number): string {
-    const seconds = Math.floor(ms / 1000);
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    const mm = ms % 1000;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${mm.toString().padStart(3, '0')}`;
+  segments() {
+    return this.data()?.segments ?? [];
+  }
+
+  trackByIndex(_index: number, segment: { index: number }) {
+    return segment.index;
+  }
+
+  onSaveSegment(event: SegmentSaveEvent) {
+    if (Object.keys(event.payload).length === 0) return;
+    this.actionInProgress.set(true);
+    this.subtitleService.updateSegment(this.id(), event.index, event.payload).subscribe({
+      next: (updated) => {
+        this.updateSegmentInState(event.index, {
+          originalText: updated.originalText ?? event.draft.originalText,
+          translatedText: updated.translatedText ?? event.draft.translatedText,
+        });
+      },
+      error: () => this.actionInProgress.set(false),
+      complete: () => this.actionInProgress.set(false),
+    });
+  }
+
+  forceTranslateSegment(index: number) {
+    this.actionInProgress.set(true);
+    this.subtitleService.forceTranslateSegment(this.id(), index).subscribe({
+      next: (updated) => {
+        this.updateSegmentInState(index, { translatedText: updated.translatedText });
+      },
+      error: () => this.actionInProgress.set(false),
+      complete: () => this.actionInProgress.set(false),
+    });
+  }
+
+  insertSegmentBelow(index: number) {
+    this.actionInProgress.set(true);
+    this.subtitleService.insertSegment(this.id(), { index: index + 1 }).subscribe({
+      next: () => this.refresh(),
+      error: () => this.actionInProgress.set(false),
+      complete: () => this.actionInProgress.set(false),
+    });
+  }
+
+  deleteSegmentByIndex(index: number) {
+    if (!confirm(`Delete segment #${index}?`)) return;
+    this.actionInProgress.set(true);
+    this.subtitleService.deleteSegment(this.id(), index).subscribe({
+      next: () => this.refresh(),
+      error: () => this.actionInProgress.set(false),
+      complete: () => this.actionInProgress.set(false),
+    });
+  }
+
+  private updateSegmentInState(index: number, updates: { originalText?: string; translatedText?: string }) {
+    const current = this.data();
+    if (!current) return;
+    const updatedSegments = current.segments.map((segment) =>
+      segment.index === index
+        ? {
+            ...segment,
+            originalText: updates.originalText ?? segment.originalText,
+            translatedText: updates.translatedText ?? segment.translatedText,
+          }
+        : segment,
+    );
+    this.data.set({ ...current, segments: updatedSegments });
+    this.actionInProgress.set(false);
   }
 }

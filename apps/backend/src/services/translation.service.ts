@@ -45,7 +45,9 @@ export class TranslationService extends EventEmitter {
       return;
     }
 
-    logger.info(`Translation requested for ${subtitleId} to ${targetLanguage} (chunkSize: ${options?.chunkSize || 'default'})`);
+    logger.info(
+      `Translation requested for ${subtitleId} to ${targetLanguage} (chunkSize: ${options?.chunkSize || 'default'})`,
+    );
     this.processRegistry.registerTask(subtitleId);
 
     return this.mutex.runExclusive(async () => {
@@ -119,7 +121,9 @@ export class TranslationService extends EventEmitter {
             const startIndex = i * chunkSize;
             const chunkLines = lines.slice(startIndex, (i + 1) * chunkSize);
 
-            logger.info(`Translating line chunk ${i + 1}/${totalChunks} for ${subtitleId} (${chunkLines.length} lines)`);
+            logger.info(
+              `Translating line chunk ${i + 1}/${totalChunks} for ${subtitleId} (${chunkLines.length} lines)`,
+            );
             const translatedLines = await this.translateLinesStructured(chunkLines, targetLanguage);
 
             translatedContent += (translatedContent ? '\n' : '') + translatedLines.join('\n');
@@ -151,6 +155,29 @@ export class TranslationService extends EventEmitter {
         this.processRegistry.deregisterTask(subtitleId);
       }
     });
+  }
+
+  async translateSegmentText(text: string, targetLanguage: string): Promise<string> {
+    const modelName = process.env.GEMINI_FLASH_MODEL || 'gemini-1.5-flash';
+    const model = this.genAI.getGenerativeModel({ model: modelName });
+
+    const prompt = `Translate the following subtitle segment into ${targetLanguage}.
+IMPORTANT:
+1. Preserve formatting tags (e.g., <i>, <b>) and line breaks.
+2. Do not add any extra commentary or labels.
+3. Return ONLY the translated text.
+
+Input:
+${text}`;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text().trim();
+    } catch (err: any) {
+      logger.error('Gemini API Error (segment translate):', err);
+      throw err;
+    }
   }
 
   private async translateCuesStructured(chunkCues: Node[], targetLanguage: string): Promise<string[]> {

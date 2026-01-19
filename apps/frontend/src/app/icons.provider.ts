@@ -18,6 +18,10 @@ import {
   RotateCw,
   Eye,
   ArrowLeft,
+  Save,
+  X,
+  Plus,
+  Sparkles,
 } from 'lucide-angular';
 
 export const SV_ICONS = {
@@ -40,4 +44,8 @@ export const SV_ICONS = {
   RotateCw,
   Eye,
   ArrowLeft,
+  Save,
+  X,
+  Plus,
+  Sparkles,
 };

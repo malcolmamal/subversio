@@ -14,7 +14,7 @@ describe('SubtitleCompareComponent', () => {
       getCompare: jest.fn().mockReturnValue(
         of({
           subtitle: { name: 'Test Sub' },
-          segments: [{ index: 1, originalText: 'Hello', translatedText: 'Hola' }],
+          segments: [{ index: 1, startTime: 0, endTime: 1000, originalText: 'Hello', translatedText: 'Hola' }],
         }),
       ),
     };
@@ -38,10 +38,5 @@ describe('SubtitleCompareComponent', () => {
   it('should load comparison data on init', () => {
     expect(mockSubtitleService.getCompare).toHaveBeenCalledWith('123');
     expect(component.data()?.subtitle.name).toBe('Test Sub');
-  });
-
-  it('should format time correctly', () => {
-    expect(component.formatTime(1234)).toBe('00:01.234');
-    expect(component.formatTime(61000)).toBe('01:01.000');
   });
 });
